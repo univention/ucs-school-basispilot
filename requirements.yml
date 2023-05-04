@@ -1,0 +1,4 @@
+---
+collections:
+  - name: univention.ucs_roles
+  - name: univention.ucs_modules

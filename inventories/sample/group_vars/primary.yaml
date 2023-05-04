@@ -1,0 +1,5 @@
+---
+# Apps:
+force_package_upgrade: "false"
+install_apps:
+    - "ucsschool"

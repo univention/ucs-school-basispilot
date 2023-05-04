@@ -1,0 +1,6 @@
+ansible_connection: "ssh"
+ansible_ssh_user: "root"
+ansible_ssh_pass: "univention"
+
+upgrade_version: "5.0-3"
+update_server: "updates.software-univention.de"

@@ -1,0 +1,52 @@
+---
+- hosts: all
+  tasks:
+    - name: "Upgrade errata | Create password tempfile"
+      tempfile:
+          state: "file"
+      changed_when: false
+      register: var_temp_file
+    - name: "Upgrade errata | Copy admin PW to file"
+      copy:
+          dest: "{{ var_temp_file.path }}"
+          content: "univention"
+    - name: "Upgrade Errata"
+      include_role:
+        name: "univention.ucs_roles.univention_upgrade"
+      vars: 
+        univention_upgrade_version: "{{ upgrade_version }}"
+        univention_upgrade_reboot_after_upgrade: true
+  tags:
+    - "upgrade_errata"
+    
+
+- hosts: primary
+  tasks:
+    - name: "Install apps | Copy license"
+      copy:
+        dest: "/tmp/"
+        src: "./files/ucs.license"
+    - name: "Install apps | Import license"
+      command: "univention-license-import /tmp/ucs.license"
+    - name: "Install apps | Create password tempfile"
+      tempfile:
+        state: "file"
+      changed_when: false
+      register: var_temp_file
+    - name: "Install apps | Copy admin PW to file"
+      copy:
+        dest: "{{ var_temp_file.path }}"
+        content: "univention"
+    - name: "Install apps |  Install Packages"
+      include_role:
+        name: "univention.ucs_roles.install_packages"
+      vars:
+        install_packages_temp_pw_file: "{{ var_temp_file }}"
+        install_packages_force_package_upgrade: "{{ force_package_upgrade }}"
+        install_packages_install_apps: "{{ install_apps }}"
+    - name: "Install apps | Remove admin pw"
+      file:
+        dest: "{{ var_temp_file.path }}"
+        state: "absent"
+  tags:
+    - "install_apps_primary"

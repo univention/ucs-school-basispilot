@@ -1,0 +1,8 @@
+[primary]
+primary ansible_host=
+
+[backup]
+backup1 ansible_host=
+
+[replica]
+replica1 ansible_host=
