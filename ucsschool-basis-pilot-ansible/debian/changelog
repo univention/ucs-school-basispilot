@@ -1,0 +1,6 @@
+mypackage (1.0.0-0) UNRELEASED; urgency=low
+
+  * Initial release. Closes: #nnnn
+    <nnnn is the bug number of your ITP>
+
+ -- Univention GmbH <packages@univention.de>  Fri, 05 May 2023 14:47:03 +0200
