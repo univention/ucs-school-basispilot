@@ -13,21 +13,21 @@
     - name: "Upgrade Errata"
       include_role:
         name: "univention.ucs_roles.univention_upgrade"
-      vars: 
+      vars:
         univention_upgrade_version: "{{ upgrade_version }}"
         univention_upgrade_reboot_after_upgrade: true
   tags:
     - "upgrade_errata"
-    
+
 
 - hosts: primary
   tasks:
     - name: "Install apps | Copy license"
       copy:
         dest: "/tmp/"
-        src: "./files/ucs.license"
+        src: "../files/basis-pilot.de.license.ldif"
     - name: "Install apps | Import license"
-      command: "univention-license-import /tmp/ucs.license"
+      command: "univention-license-import /tmp/basis-pilot.de.license.ldif"
     - name: "Install apps | Create password tempfile"
       tempfile:
         state: "file"
