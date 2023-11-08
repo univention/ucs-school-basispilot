@@ -1,7 +1,5 @@
 ---
 - hosts: all
-  vars_files:
-    - "inventories/sample/group_vars/primary.yaml"
   tasks:
     - name: "Upgrade errata | Create password tempfile"
       tempfile:
@@ -23,6 +21,8 @@
 
 
 - hosts: primary
+  vars_files:
+    - "inventories/sample/group_vars/primary.yaml"
   tasks:
     - name: "Install apps | Copy license"
       copy:
