@@ -2,4 +2,7 @@
 # Apps:
 force_package_upgrade: "false"
 install_apps:
-    - "ucsschool"
+  - "ucsschool"
+school_parameters:
+  OUdisplayname: 'Name der Schule'
+  schoolOU: 'schulname'
