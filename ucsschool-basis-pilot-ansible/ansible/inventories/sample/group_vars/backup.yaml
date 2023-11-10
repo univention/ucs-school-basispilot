@@ -1,0 +1,11 @@
+---
+# Apps for backup
+force_package_upgrade: "false"
+install_apps:
+  - "letsencrypt"
+  - "selfservice"
+  - "keycloak"
+  - "prometheus"
+# FIXME: parameters for letsencrypt
+# FIXME: parameters for selfservice
+# FIXME: parameters for keycloak

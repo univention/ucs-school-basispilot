@@ -19,10 +19,8 @@
   tags:
     - "upgrade_errata"
 
-
+# Prepare for appcenter able to install apps (works for the whole domain)
 - hosts: primary
-  vars_files:
-    - "inventories/sample/group_vars/primary.yaml"
   tasks:
     - name: "Install apps | Copy license"
       copy:
@@ -30,6 +28,14 @@
         src: "../files/basis-pilot.de.license.ldif"
     - name: "Install apps | Import license"
       command: "univention-license-import /tmp/basis-pilot.de.license.ldif"
+
+# At least installing apps is a task for all hosts.
+# Doing it in one run prevents us from falling prey to the current bug regarding ucsschool version numbering.
+- hosts: all
+  vars_files:
+    - "inventories/sample/group_vars/all.yaml"
+    - "inventories/sample/group_vars/{{ inventory_hostname }}.yaml"
+  tasks:
     - name: "Install apps | Create password tempfile"
       tempfile:
         state: "file"
@@ -45,8 +51,22 @@
       vars:
         install_packages_temp_pw_file: "{{ var_temp_file }}"
         install_packages_force_package_upgrade: "{{ force_package_upgrade }}"
-        install_packages_install_apps: "{{ install_apps }}"
+        install_packages_install_apps: "{{ global.install_apps|default([]) + install_apps|default([]) }}"
+    - name: "Install apps | Remove admin pw"
+      file:
+        dest: "{{ var_temp_file.path }}"
+        state: "absent"
+  tags:
+    - "install_apps_{{ inventory_hostname }}"
+
+# -------------- Start host-specific things, relying on apps installed ------------
+hosts: primary
+  vars_files:
+    - "inventories/sample/group_vars/all.yaml"
+    - "inventories/sample/group_vars/primary.yaml"
+  tasks:
     # NOTE we don't let it fail: so we have a chance to process (and print!) the result
+    # FIXME: this task would make sense to be refactored in an ucs_call_umcp role or similar
     - name: "Install apps | Configure ucs@school"
       ansible.builtin.uri:
         # this request will be executed at the target
@@ -58,16 +78,7 @@
         force_basic_auth: true
         body_format: 'json'
         body:
-          options:
-            setup: "singlemaster"
-            createDemo: false
-            username: "Administrator"
-            password: ""
-            master: "primary.basis-pilot.de"
-            OUdisplayname: "{{ school_parameters.OUdisplayname }}"
-            schoolOU: "{{ school_parameters.schoolOU }}"
-            server_type: "educational"
-            nameEduServer: ""
+          options: {{ global.school_parameters|default({})|combine(school_parameters|default({})) }}
       register: config_result
       failed_when: false
     # when failed: print full result and fail.
@@ -98,9 +109,5 @@
     - name: "Install apps | Print last wait result"
       ansible.builtin.debug:
         msg: "{{ wait_result }}"
-    - name: "Install apps | Remove admin pw"
-      file:
-        dest: "{{ var_temp_file.path }}"
-        state: "absent"
-  tags:
-    - "install_apps_primary"
+
+# FIXME: add configuration steps for other apps on other hosts

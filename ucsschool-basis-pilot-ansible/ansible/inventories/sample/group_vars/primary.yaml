@@ -1,5 +1,5 @@
 ---
-# Apps:
+# Apps for primary
 force_package_upgrade: "false"
 install_apps:
   - "ucsschool"

@@ -1,0 +1,4 @@
+---
+# Apps for replica
+force_package_upgrade: "false"
+# playbook can cope with 'install_apps' missing or empty
