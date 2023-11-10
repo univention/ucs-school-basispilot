@@ -79,7 +79,7 @@
         force_basic_auth: true
         body_format: 'json'
         body:
-          options: {{ global.school_parameters|default({})|combine(school_parameters|default({})) }}
+          options: "{{ global.school_parameters|default({})|combine(school_parameters|default({})) }}"
       register: config_result
       failed_when: false
     # when failed: print full result and fail.
