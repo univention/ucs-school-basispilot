@@ -57,7 +57,7 @@
         dest: "{{ var_temp_file.path }}"
         state: "absent"
   tags:
-    - "install_apps_{{ inventory_hostname }}"
+    - "install_apps_all"
 
 # -------------- Start host-specific things, relying on apps installed ------------
 
