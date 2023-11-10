@@ -34,7 +34,7 @@
 - hosts: all
   vars_files:
     - "inventories/sample/group_vars/all.yaml"
-    - "inventories/sample/group_vars/{{ inventory_hostname }}.yaml"
+    - "inventories/sample/group_vars/{{ hostvars[inventory_hostname]['group_names'][0] }}.yaml"
   tasks:
     - name: "Install apps | Create password tempfile"
       tempfile:
@@ -60,54 +60,55 @@
     - "install_apps_{{ inventory_hostname }}"
 
 # -------------- Start host-specific things, relying on apps installed ------------
+
 - hosts: primary
-    vars_files:
-      - "inventories/sample/group_vars/all.yaml"
-      - "inventories/sample/group_vars/primary.yaml"
-    tasks:
-      # NOTE we don't let it fail: so we have a chance to process (and print!) the result
-      # FIXME: this task would make sense to be refactored in an ucs_call_umcp role or similar
-      - name: "Install apps | Configure ucs@school"
-        ansible.builtin.uri:
-          # this request will be executed at the target
-          url: "https://127.0.0.1/univention/command/schoolinstaller/install"
-          method: 'POST'
-          validate_certs: false
-          url_username: "Administrator"
-          url_password: "univention"
-          force_basic_auth: true
-          body_format: 'json'
-          body:
-            options: {{ global.school_parameters|default({})|combine(school_parameters|default({})) }}
-        register: config_result
-        failed_when: false
-      # when failed: print full result and fail.
-      - name: "Install apps | Print configuration result"
-        ansible.builtin.debug:
-          msg: "{{ config_result }}"
-        failed_when: config_result['status']|int != 200 or config_result['json']['status']|int != 200
-        when: config_result['status']|int != 200 or config_result['json']['status']|int != 200
-      - name: "Install apps |  Wait for ucsschool configuration to finish"
-        ansible.builtin.uri:
-          url: "https://127.0.0.1/univention/command/schoolinstaller/progress?preventCache={{ now()|regex_replace('[^0-9]','_') }}"
-          method: 'POST'
-          validate_certs: false
-          url_username: "Administrator"
-          url_password: "univention"
-          force_basic_auth: true
-          headers:
-            Content-Type: 'application/json'
-            X-Xsrf-Protection: "{{ config_result['cookies']['UMCSessionId'] }}"
-            Cookie: "{{ config_result['cookies_string'] }}"
-          body: '{"options":{}}'
-        register: wait_result
-        until: wait_result['status']|int != 200 or wait_result['json']['status']|int != 200 or wait_result['json']['result']['finished']
-        # This checks every 15 secs, and limits the overall time to three hours: yes we need that :-(
-        delay: 15
-        retries: 720
-        # FIXME: add a notify handler that restarts the UMC server
-      - name: "Install apps | Print last wait result"
-        ansible.builtin.debug:
-          msg: "{{ wait_result }}"
+  vars_files:
+    - "inventories/sample/group_vars/all.yaml"
+    - "inventories/sample/group_vars/primary.yaml"
+  tasks:
+    # NOTE we don't let it fail: so we have a chance to process (and print!) the result
+    # FIXME: this task would make sense to be refactored in an ucs_call_umcp role or similar
+    - name: "Install apps | Configure ucs@school"
+      ansible.builtin.uri:
+        # this request will be executed at the target
+        url: "https://127.0.0.1/univention/command/schoolinstaller/install"
+        method: 'POST'
+        validate_certs: false
+        url_username: "Administrator"
+        url_password: "univention"
+        force_basic_auth: true
+        body_format: 'json'
+        body:
+          options: {{ global.school_parameters|default({})|combine(school_parameters|default({})) }}
+      register: config_result
+      failed_when: false
+    # when failed: print full result and fail.
+    - name: "Install apps | Print configuration result"
+      ansible.builtin.debug:
+        msg: "{{ config_result }}"
+      failed_when: config_result['status']|int != 200 or config_result['json']['status']|int != 200
+      when: config_result['status']|int != 200 or config_result['json']['status']|int != 200
+    - name: "Install apps |  Wait for ucsschool configuration to finish"
+      ansible.builtin.uri:
+        url: "https://127.0.0.1/univention/command/schoolinstaller/progress?preventCache={{ now()|regex_replace('[^0-9]','_') }}"
+        method: 'POST'
+        validate_certs: false
+        url_username: "Administrator"
+        url_password: "univention"
+        force_basic_auth: true
+        headers:
+          Content-Type: 'application/json'
+          X-Xsrf-Protection: "{{ config_result['cookies']['UMCSessionId'] }}"
+          Cookie: "{{ config_result['cookies_string'] }}"
+        body: '{"options":{}}'
+      register: wait_result
+      until: wait_result['status']|int != 200 or wait_result['json']['status']|int != 200 or wait_result['json']['result']['finished']
+      # This checks every 15 secs, and limits the overall time to three hours: yes we need that :-(
+      delay: 15
+      retries: 720
+      # FIXME: add a notify handler that restarts the UMC server
+    - name: "Install apps | Print last wait result"
+      ansible.builtin.debug:
+        msg: "{{ wait_result }}"
 
 # FIXME: add configuration steps for other apps on other hosts
