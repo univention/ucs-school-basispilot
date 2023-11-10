@@ -91,9 +91,9 @@
         body: '{"options":{}}'
       register: wait_result
       until: wait_result['status']|int != 200 or wait_result['json']['status']|int != 200 or wait_result['json']['result']['finished']
-      # This checks every 10 secs, and limits the overall time to 10 minutes.
-      delay: 10
-      retries: 60
+      # This checks every 15 secs, and limits the overall time to three hours: yes we need that :-(
+      delay: 15
+      retries: 720
       # FIXME: add a notify handler that restarts the UMC server
     - name: "Install apps | Print last wait result"
       ansible.builtin.debug:
