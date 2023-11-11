@@ -3,9 +3,9 @@
 force_package_upgrade: "false"
 install_apps:
   - "letsencrypt"
-  - "selfservice"
   - "keycloak"
   - "prometheus"
+  - "self-service"
 # FIXME: parameters for letsencrypt
 # FIXME: parameters for selfservice
 # FIXME: parameters for keycloak

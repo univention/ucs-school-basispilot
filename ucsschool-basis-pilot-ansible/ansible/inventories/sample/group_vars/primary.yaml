@@ -2,6 +2,7 @@
 # Apps for primary
 force_package_upgrade: "false"
 install_apps:
+  - "self-service-backend"
   - "ucsschool"
 school_parameters:
   OUdisplayname: 'Name der Schule'
