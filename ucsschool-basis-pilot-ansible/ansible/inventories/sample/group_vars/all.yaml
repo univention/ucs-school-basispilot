@@ -9,6 +9,7 @@ update_server: "updates.software-univention.de"
 # Whenever a task needs global *and* per-host config, it can include both
 # vars files and *MUST* merge the needed variables.
 global:
+  # will be installed before host-specific apps
   install_apps:
     - 'prometheus-node-exporter'
   # will be overridden by school_parameters in primary.yaml
