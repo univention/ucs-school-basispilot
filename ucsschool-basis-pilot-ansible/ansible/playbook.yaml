@@ -6,6 +6,8 @@
           state: "file"
       changed_when: false
       register: var_temp_file
+      # Playbook shall not do anything, for now.
+      failed_when: true
     - name: "Upgrade errata | Copy admin PW to file"
       copy:
           dest: "{{ var_temp_file.path }}"
