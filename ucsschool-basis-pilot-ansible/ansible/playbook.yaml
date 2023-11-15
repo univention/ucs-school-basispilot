@@ -1,27 +1,37 @@
 ---
 - hosts: all
+  vars_files:
+    - "inventories/sample/group_vars/all.yaml"
+    - "inventories/sample/group_vars/{{ hostvars[inventory_hostname]['group_names'][0] }}.yaml"
   tasks:
-    - name: "Upgrade errata | Create password tempfile"
-      tempfile:
-          state: "file"
-      changed_when: false
-      register: var_temp_file
-      # Playbook shall not do anything, for now.
-      failed_when: true
-    - name: "Upgrade errata | Copy admin PW to file"
-      copy:
-          dest: "{{ var_temp_file.path }}"
-          content: "univention"
-    - name: "Upgrade Errata"
-      include_role:
-        name: "univention.ucs_roles.univention_upgrade"
-      vars:
-        univention_upgrade_version: "{{ upgrade_version }}"
-        univention_upgrade_reboot_after_upgrade: true
+    - name: "Upgrade errata"
+      # making a BLOCK with an ALWAYS clause really ensures passwordfile to be removed even in case of failure
+      block:
+        - name: "Upgrade errata | Create password tempfile"
+          tempfile:
+              state: "file"
+          changed_when: false
+          register: var_temp_file
+        - name: "Upgrade errata | Copy admin PW to file"
+          copy:
+              dest: "{{ var_temp_file.path }}"
+              content: "{{ root_password }}"
+        - name: "Upgrade Errata"
+          include_role:
+            name: "univention.ucs_roles.univention_upgrade"
+          vars:
+            univention_upgrade_version: "{{ upgrade_version }}"
+            univention_upgrade_reboot_after_upgrade: true
+      always:
+        - name: "Upgrade errata | Remove admin pw"
+          file:
+            dest: "{{ var_temp_file.path }}"
+            state: "absent"
   tags:
     - "upgrade_errata"
 
 # Prepare for appcenter able to install apps (works for the whole domain)
+# FIXME Rework license import so it can be done manually too
 - hosts: primary
   tasks:
     - name: "Install apps | Copy license"
@@ -31,38 +41,40 @@
     - name: "Install apps | Import license"
       command: "univention-license-import /tmp/basis-pilot.de.license.ldif"
 
-# At least installing apps is a task for all hosts.
-# Doing it in one run prevents us from falling prey to the current bug regarding ucsschool version numbering.
-- hosts: all
+# With the requirement 'join other roles after @school is fully configured on master' we have to do this
+# before anything else. For better distinction what we're doing right now, we make two plays: one for
+# installing, and one for configuring.
+- hosts: primary
   vars_files:
     - "inventories/sample/group_vars/all.yaml"
-    - "inventories/sample/group_vars/{{ hostvars[inventory_hostname]['group_names'][0] }}.yaml"
+    - "inventories/sample/group_vars/primary.yaml"
   tasks:
-    - name: "Install apps | Create password tempfile"
-      tempfile:
-        state: "file"
-      changed_when: false
-      register: var_temp_file
-    - name: "Install apps | Copy admin PW to file"
-      copy:
-        dest: "{{ var_temp_file.path }}"
-        content: "univention"
-    - name: "Install apps | Install Packages"
-      include_role:
-        name: "univention.ucs_roles.install_packages"
-      vars:
-        install_packages_temp_pw_file: "{{ var_temp_file }}"
-        install_packages_force_package_upgrade: "{{ force_package_upgrade }}"
-        # global apps before host-specific ones
-        install_packages_install_apps: "{{ global.install_apps|default([]) + install_apps|default([]) }}"
-    - name: "Install apps | Remove admin pw"
-      file:
-        dest: "{{ var_temp_file.path }}"
-        state: "absent"
+    - name: "Install ucs@school"
+      block:
+        - name: "Install ucs@school | Create password tempfile"
+          tempfile:
+            state: "file"
+          changed_when: false
+          register: var_temp_file
+        - name: "Install ucs@school | Copy admin PW to file"
+          copy:
+            dest: "{{ var_temp_file.path }}"
+            content: "{{ root_password }}"
+        - name: "Install ucs@school | Install Packages"
+          include_role:
+            name: "univention.ucs_roles.install_packages"
+          vars:
+            install_packages_temp_pw_file: "{{ var_temp_file }}"
+            install_packages_force_package_upgrade: "{{ force_package_upgrade }}"
+            # only this one.
+            install_packages_install_apps: ["ucsschool"]
+      always:
+        - name: "Install ucs@school | Remove admin pw"
+          file:
+            dest: "{{ var_temp_file.path }}"
+            state: "absent"
   tags:
-    - "install_apps_all"
-
-# -------------- Start host-specific things, relying on apps installed ------------
+    - "install_apps_install_ucsschool"
 
 - hosts: primary
   vars_files:
@@ -110,11 +122,79 @@
       # This checks every 15 secs, and limits the overall time to three hours
       delay: 15
       retries: 720
-      # FIXME: add a notify handler that restarts the UMC server
+      # FIXME: docs say we should even reboot the primary after this!
     # FIXME: this should print only relevant fields of the result: percentage, last executed step, result code
     # or even better: do not print anything when we're sure it works!
     - name: "Configure ucs@school | Print last result"
       ansible.builtin.debug:
         msg: "{{ wait_result }}"
+  tags:
+    - "install_apps_configure_ucsschool"
 
-# FIXME: add configuration steps for other apps on other hosts
+# We need the state 'jenkins finished, @school installed and configured to see WHY the join of backup fails.
+# So force it to fail, draw snapshots, and then start analyzing.
+- hosts: all
+  tasks:
+    - name: "Stop processing"
+      ansible.builtin.debug:
+        msg: "Stopping here."
+      failed_when: true
+
+# Jenkins job does not do the join for non-master roles (yes: run_setup_join_on_non_master_roles does not do that)
+# So we have to ensure join now, right before trying to install apps.
+- hosts: all:!primary
+  vars_files:
+    - "inventories/sample/group_vars/all.yaml"
+    - "inventories/sample/group_vars/{{ hostvars[inventory_hostname]['group_names'][0] }}.yaml"
+  tasks:
+    - name: "Join system into domain"
+      ansible.builtin.include_role:
+        name: "univention.ucs_roles.ucs_join"
+      vars:
+        ucs_join_network_config_type: "{{ interface_mode }}"
+        ucs_join_network_config_interface: "{{ interface_name }}"
+        ucs_join_network_config_static_dns_servers:
+          - "{{ primary_ip }}"
+        ucs_join_server_type: "{{ server_role }}"
+        ucs_join_master_server: "{{ primary_ip }}"
+        ucs_join_admin_user_name: "Administrator"
+        ucs_join_root_password: "{{ root_password }}"
+        ucs_join_hostname: "{{ ansible_facts.hostname }}"
+        ucs_join_domain_name: "{{ domainname }}"
+        ucs_join_basedn: "{{ ldap_base }}"
+  tags:
+    - "join_non_master_hosts"
+
+# This is (nearly) a code copy of 'install apps' above. Applicable to all roles, and will install
+# all software required on all roles.
+- hosts: all
+  vars_files:
+    - "inventories/sample/group_vars/all.yaml"
+    - "inventories/sample/group_vars/{{ hostvars[inventory_hostname]['group_names'][0] }}.yaml"
+  tasks:
+    - name: "Install apps"
+      block:
+        - name: "Install apps | Create password tempfile"
+          tempfile:
+            state: "file"
+          changed_when: false
+          register: var_temp_file
+        - name: "Install apps | Copy admin PW to file"
+          copy:
+            dest: "{{ var_temp_file.path }}"
+            content: "{{ root_password }}"
+        - name: "Install apps | Install Packages"
+          include_role:
+            name: "univention.ucs_roles.install_packages"
+          vars:
+            install_packages_temp_pw_file: "{{ var_temp_file }}"
+            install_packages_force_package_upgrade: "{{ force_package_upgrade }}"
+            # global apps before host-specific ones
+            install_packages_install_apps: "{{ global.install_apps|default([]) + install_apps|default([]) }}"
+      always:
+        - name: "Install apps | Remove admin pw"
+          file:
+            dest: "{{ var_temp_file.path }}"
+            state: "absent"
+  tags:
+    - "install_additonal_apps"

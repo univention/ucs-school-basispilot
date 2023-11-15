@@ -2,3 +2,5 @@
 # Apps for replica
 force_package_upgrade: "false"
 # playbook can cope with 'install_apps' missing or empty
+# translate server role into the real one for joining
+server_role: 'slave'

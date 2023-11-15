@@ -9,3 +9,4 @@ install_apps:
 # FIXME: parameters for letsencrypt
 # FIXME: parameters for selfservice
 # FIXME: parameters for keycloak
+server_role: 'backup'

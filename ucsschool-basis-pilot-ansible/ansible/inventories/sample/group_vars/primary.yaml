@@ -1,9 +1,9 @@
 ---
 # Apps for primary
 force_package_upgrade: "false"
+# this is only for 'additional apps': @school is being handled already.
 install_apps:
   - "self-service-backend"
-  - "ucsschool"
 school_parameters:
   OUdisplayname: 'Name der Schule'
   schoolOU: 'schulname'
