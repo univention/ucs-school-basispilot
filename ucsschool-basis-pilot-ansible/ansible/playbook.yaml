@@ -133,10 +133,11 @@
 
 # Maybe we can make a handler -- not the time for it.
 - hosts: primary
-  ansible.builtin.reboot:
-    # give this UCS some time to get into shape
-    post_reboot_delay: 60
-    test_command: "univention-app info"
+  tasks:
+    - ansible.builtin.reboot:
+        # give this UCS some time to get into shape
+        post_reboot_delay: 60
+        test_command: "univention-app info"
 
 # We need the state 'jenkins finished, @school installed and configured to see WHY the join of backup fails.
 # So force it to fail, draw snapshots, and then start analyzing.
