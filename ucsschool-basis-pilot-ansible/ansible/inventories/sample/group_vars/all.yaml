@@ -14,7 +14,7 @@ global:
     - 'prometheus-node-exporter'
   # will be overridden by school_parameters in primary.yaml
   school_parameters:
-    setup: 'singlemaster'
+    setup: 'multiserver'
     createDemo: false
     username: 'Administrator'
     # Next two: needed when doing join scripts on non-master roles?
