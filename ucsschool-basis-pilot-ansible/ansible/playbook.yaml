@@ -141,12 +141,12 @@
 
 # We need the state 'jenkins finished, @school installed and configured to see WHY the join of backup fails.
 # So force it to fail, draw snapshots, and then start analyzing.
-- hosts: all
-  tasks:
-    - name: "Stop processing"
-      ansible.builtin.debug:
-        msg: "Stopping here."
-      failed_when: true
+#- hosts: all
+#  tasks:
+#    - name: "Stop processing"
+#      ansible.builtin.debug:
+#        msg: "Stopping here."
+#      failed_when: true
 
 # Jenkins job does not do the join for non-master roles (yes: run_setup_join_on_non_master_roles does not do that)
 # So we have to ensure join now, right before trying to install apps.
