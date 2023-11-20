@@ -81,7 +81,6 @@
     - "inventories/sample/group_vars/all.yaml"
     - "inventories/sample/group_vars/primary.yaml"
   tasks:
-    # NOTE we don't let it fail: so we have a chance to process (and print!) the result
     # FIXME: this task would make sense to be refactored in an ucs_call_umcp role or similar
     - name: "Configure ucs@school | Invoke configuration"
       ansible.builtin.uri:
@@ -96,14 +95,7 @@
         body:
           options: "{{ global.school_parameters|default({})|combine(school_parameters|default({})) }}"
       register: config_result
-      failed_when: false
-    # when failed: print full result and fail.
-    - name: "Configure ucs@school | Print configuration result on failure"
-      ansible.builtin.debug:
-        msg: "{{ config_result }}"
       failed_when: config_result['status']|int != 200 or config_result['json']['status']|int != 200
-      # Comment this away to print the result even when it did not fail
-      when: config_result['status']|int != 200 or config_result['json']['status']|int != 200
     - name: "Configure ucs@school | Wait for configuration to finish"
       ansible.builtin.uri:
         url: "https://127.0.0.1/univention/command/schoolinstaller/progress?preventCache={{ now()|regex_replace('[^0-9]','_') }}"
@@ -122,31 +114,17 @@
       # This checks every 15 secs, and limits the overall time to three hours
       delay: 15
       retries: 720
-      # FIXME: docs say we should even reboot the primary after this!
-    # FIXME: this should print only relevant fields of the result: percentage, last executed step, result code
-    # or even better: do not print anything when we're sure it works!
-    - name: "Configure ucs@school | Print last result"
-      ansible.builtin.debug:
-        msg: "{{ wait_result }}"
+      # Docs say we should even reboot the primary after this!
+    - name: "Configure ucs@school | Reboot"
+      ansible.builtin.reboot:
+        # give this UCS some time to get into shape
+        # FIXME: what is the *documented* way to check that UCS is really running and ready to serve requests?
+        # (pidof apache plus 30 seconds is not reliable)
+        post_reboot_delay: 60
+        test_command: "univention-app info"
   tags:
     - "install_apps_configure_ucsschool"
 
-# Maybe we can make a handler -- not the time for it.
-- hosts: primary
-  tasks:
-    - ansible.builtin.reboot:
-        # give this UCS some time to get into shape
-        post_reboot_delay: 60
-        test_command: "univention-app info"
-
-# We need the state 'jenkins finished, @school installed and configured to see WHY the join of backup fails.
-# So force it to fail, draw snapshots, and then start analyzing.
-#- hosts: all
-#  tasks:
-#    - name: "Stop processing"
-#      ansible.builtin.debug:
-#        msg: "Stopping here."
-#      failed_when: true
 
 # Jenkins job does not do the join for non-master roles (yes: run_setup_join_on_non_master_roles does not do that)
 # So we have to ensure join now, right before trying to install apps.
@@ -206,3 +184,35 @@
             state: "absent"
   tags:
     - "install_additonal_apps"
+
+# Now to the configuration part. As this should be allowed to fail we make it an extra play,
+# so we can at least relay on all requested apps to be installed. Note it does not make sense
+# to mention apps in 'configure_apps' but not in 'install_apps': this would always fail.
+- hosts: all
+  vars_files:
+    - "inventories/sample/group_vars/all.yaml"
+    - "inventories/sample/group_vars/{{ hostvars[inventory_hostname]['group_names'][0] }}.yaml"
+  tasks:
+    - name: "Configure apps"
+      vars:
+        app_name: "{{ item.key }}"
+        app_vars: "{{ item.value.app_config|default({}) }}"
+        ucr_vars: "{{ item.value.ucr_config|default({}) }}"
+        services: "{{ item.value.restart|default([]) }}"
+      include_tasks: configure_apps.yaml
+      with_items: "{{ global.configure_apps|default({}) | combine(configure_apps|default({})) | dict2items }}"
+  tags:
+    - "configure_apps"
+
+# After having *installed* the apps, we should provide a means of *configuring* them,
+# at least where this is possible, desired, and doable by documented APIs. 
+#
+# Picture of data:-
+#
+#  foreach host:
+#    include global YAML
+#    include host-specific YAML
+#    foreach config tuple (key is application name)
+#      apply app settings by univention-app configure
+#      apply additional UCR settings
+#      restart services

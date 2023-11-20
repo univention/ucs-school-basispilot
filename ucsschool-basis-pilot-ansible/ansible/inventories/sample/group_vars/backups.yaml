@@ -10,3 +10,21 @@ install_apps:
 # FIXME: parameters for selfservice
 # FIXME: parameters for keycloak
 server_role: 'backup'
+
+configure_apps:
+  # We refrain from setting apache2/{cert,chain,key} because with the unreliable behaviour
+  # of acme_tiny.py (regards the 503 overload result) we risk having no webserver at all,
+  # and this will effectively prevent further success (when trying to repeat the refresh)
+  #
+  # NOTE the requirement (allow this task to fail) is automatically fulfilled because
+  #  neither `univention-app configure` nor `ucr` return exit codes on error :-(
+  letsencrypt:
+    app_config:
+      "letsencrypt/domains": "insert.the.domain.here"
+      "letsencrypt/services/apache2":  "True"
+    #ucr_config:
+    #  "one_var": "one value"
+    #  "other_var": "other value"
+    #restart:
+    #  - 'oneservice'
+    #  - 'otherservice'

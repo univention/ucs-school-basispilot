@@ -24,3 +24,16 @@ global:
     schoolOU: 'pilotschule'
     server_type: 'educational'
     nameEduServer: ''
+  # For app configuration, we expect this structure. Currently no need to use
+  # this here; it would apply to all hosts where the given app is installed.
+#  configure_apps:
+#    appname:
+#      app_config:
+#        "configname": "config value"
+#        "otherconfig":  "other value"
+#      ucr_config:
+#        "appname/some/var": "some value"
+#        "appname/other/var": "other value"
+#      restart:
+#        - "service1"
+#        - "service2"
