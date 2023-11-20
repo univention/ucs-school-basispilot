@@ -1,7 +1,7 @@
 ---
 - name: "Configure apps | using univention-app"
   ansible.builtin.command:
-    cmd: "univention-app configure --set {{ app_vars.keys() | zip(app_vars.values()) | map('join','=') | join(' ') }} {{ app_name }}"
+    cmd: "univention-app configure {{ app_name }} --set {{ app_vars.keys() | zip(app_vars.values()) | map('join','=') | join(' ') }}"
   when: app_vars|dict2items|length > 0
 - name: "Configure apps | using config registry"
   ansible.builtin.command:
