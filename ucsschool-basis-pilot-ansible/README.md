@@ -28,7 +28,8 @@ ansible-galaxy install -r requirements.yml
 
 ### Edit required parameters
 
-Edit the .yaml files in inventories/sample/inventory to set the required parameters:
+Edit the .yaml files in inventories/sample/inventory to set the required parameters.
+Note that all yaml files are commented.
 
 1. all.yaml
 
@@ -42,6 +43,8 @@ Edit the .yaml files in inventories/sample/inventory to set the required paramet
 3. the other files
 
 * more/less apps as needed
+* configuration parameters for apps
+  * [backup] -> letsencrypt
 
 ### Obtain License
 
@@ -50,5 +53,9 @@ on the Debian host. The playbook will import it into the UCS domain.
 
 ### Configure Server
 
-ansible-playbook -i inventories/sample/inventory playbook.yaml 
-
+ansible-playbook \
+--private-key ~/ansible-root/tech.pem \
+-u root \
+-i ~/ansible-root/inventory/basis-pilot.ini \
+-i ~/ansible-root/inventory/basis-pilot-kvm.ini \
+00424-basis-pilot/ucsschool-basis-pilot-ansible/ansible/playbook.yaml
