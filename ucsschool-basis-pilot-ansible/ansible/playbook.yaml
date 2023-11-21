@@ -50,29 +50,11 @@
     - "inventories/sample/group_vars/primary.yaml"
   tasks:
     - name: "Install ucs@school"
-      block:
-        - name: "Install ucs@school | Create password tempfile"
-          tempfile:
-            state: "file"
-          changed_when: false
-          register: var_temp_file
-        - name: "Install ucs@school | Copy admin PW to file"
-          copy:
-            dest: "{{ var_temp_file.path }}"
-            content: "{{ root_password }}"
-        - name: "Install ucs@school | Install Packages"
-          include_role:
-            name: "univention.ucs_roles.install_packages"
-          vars:
-            install_packages_temp_pw_file: "{{ var_temp_file }}"
-            install_packages_force_package_upgrade: "{{ force_package_upgrade }}"
-            # only this one.
-            install_packages_install_apps: ["ucsschool"]
-      always:
-        - name: "Install ucs@school | Remove admin pw"
-          file:
-            dest: "{{ var_temp_file.path }}"
-            state: "absent"
+      univention.ucs_modules.univention_app:
+        name: "ucsschool"
+        admin_username: Administrator
+        admin_password: "{{ root_password }}"
+        state: present
   tags:
     - "install_apps_install_ucsschool"
 
@@ -81,7 +63,7 @@
     - "inventories/sample/group_vars/all.yaml"
     - "inventories/sample/group_vars/primary.yaml"
   tasks:
-    # FIXME: this task would make sense to be refactored in an ucs_call_umcp role or similar
+    # FIXME: this task would make sense to be refactored into a module
     - name: "Configure ucs@school | Invoke configuration"
       ansible.builtin.uri:
         # this request will be executed at the target
@@ -151,48 +133,37 @@
   tags:
     - "join_non_master_hosts"
 
-# This is (nearly) a code copy of 'install apps' above. Applicable to all roles, and will install
-# all software required on all roles.
+# This installs all additional apps (mentioned in the global namespace (all.yaml)
+# and in the .yaml file for the corresponding host).
 - hosts: all
   vars_files:
     - "inventories/sample/group_vars/all.yaml"
     - "inventories/sample/group_vars/{{ hostvars[inventory_hostname]['group_names'][0] }}.yaml"
   tasks:
     - name: "Install apps"
-      block:
-        - name: "Install apps | Create password tempfile"
-          tempfile:
-            state: "file"
-          changed_when: false
-          register: var_temp_file
-        - name: "Install apps | Copy admin PW to file"
-          copy:
-            dest: "{{ var_temp_file.path }}"
-            content: "{{ root_password }}"
-        - name: "Install apps | Install Packages"
-          include_role:
-            name: "univention.ucs_roles.install_packages"
-          vars:
-            install_packages_temp_pw_file: "{{ var_temp_file }}"
-            install_packages_force_package_upgrade: "{{ force_package_upgrade }}"
-            # global apps before host-specific ones
-            install_packages_install_apps: "{{ global.install_apps|default([]) + install_apps|default([]) }}"
-      always:
-        - name: "Install apps | Remove admin pw"
-          file:
-            dest: "{{ var_temp_file.path }}"
-            state: "absent"
+      univention.ucs_modules.univention_app:
+        name: "{{ the_app }}"
+        admin_username: Administrator
+        admin_password: "{{ root_password }}"
+        state: present
+      loop: "{{ global.install_apps|default([]) + install_apps|default([]) }}"
+      loop_control:
+        loop_var: the_app
   tags:
     - "install_additonal_apps"
 
-# Now to the configuration part. As this should be allowed to fail we make it an extra play,
-# so we can at least relay on all requested apps to be installed. Note it does not make sense
-# to mention apps in 'configure_apps' but not in 'install_apps': this would always fail.
+# Even if it is required that this step should not fail, we don't add explicit 'failed_when: true' to
+# force success, as this would hide the real cause of failure.
+# One can always repeat this step using the tag 'configure_apps' and even a single hostname.
+# NOTE specifying an app that is not installed will SKIP (not fail) the given run.
 - hosts: all
   vars_files:
     - "inventories/sample/group_vars/all.yaml"
     - "inventories/sample/group_vars/{{ hostvars[inventory_hostname]['group_names'][0] }}.yaml"
   tasks:
+    - name: "Configure apps | get installed apps"
+      ansible.builtin.include_role:
+        name: "univention.ucs_roles.get_installed_apps"
     - name: "Configure apps"
       vars:
         app_name: "{{ item.key }}"
@@ -200,19 +171,8 @@
         ucr_vars: "{{ item.value.ucr_config|default({}) }}"
         services: "{{ item.value.restart|default([]) }}"
       include_tasks: configure_apps.yaml
+      when: item.key in get_installed_apps_installed_apps.keys()
       with_items: "{{ global.configure_apps|default({}) | combine(configure_apps|default({})) | dict2items }}"
   tags:
     - "configure_apps"
 
-# After having *installed* the apps, we should provide a means of *configuring* them,
-# at least where this is possible, desired, and doable by documented APIs. 
-#
-# Picture of data:-
-#
-#  foreach host:
-#    include global YAML
-#    include host-specific YAML
-#    foreach config tuple (key is application name)
-#      apply app settings by univention-app configure
-#      apply additional UCR settings
-#      restart services
