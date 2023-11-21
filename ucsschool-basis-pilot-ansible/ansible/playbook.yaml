@@ -52,8 +52,8 @@
     - name: "Install ucs@school"
       univention.ucs_modules.univention_app:
         name: "ucsschool"
-        admin_username: Administrator
-        admin_password: "{{ root_password }}"
+        auth_username: Administrator
+        auth_password: "{{ root_password }}"
         state: present
   tags:
     - "install_apps_install_ucsschool"
@@ -71,7 +71,7 @@
         method: 'POST'
         validate_certs: false
         url_username: "Administrator"
-        url_password: "univention"
+        url_password: "{{ root_password }}"
         force_basic_auth: true
         body_format: 'json'
         body:
@@ -84,7 +84,7 @@
         method: 'POST'
         validate_certs: false
         url_username: "Administrator"
-        url_password: "univention"
+        url_password: "{{ root_password }}"
         force_basic_auth: true
         headers:
           Content-Type: 'application/json'
@@ -143,8 +143,8 @@
     - name: "Install apps"
       univention.ucs_modules.univention_app:
         name: "{{ the_app }}"
-        admin_username: Administrator
-        admin_password: "{{ root_password }}"
+        auth_username: Administrator
+        auth_password: "{{ root_password }}"
         state: present
       loop: "{{ global.install_apps|default([]) + install_apps|default([]) }}"
       loop_control:
