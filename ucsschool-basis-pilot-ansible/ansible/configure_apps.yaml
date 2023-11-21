@@ -1,16 +1,20 @@
 ---
 - name: "Configure apps | using univention-app"
-  ansible.builtin.command:
-    cmd: "univention-app configure {{ app_name }} --set {{ app_vars.keys() | zip(app_vars.values()) | map('join','=') | join(' ') }}"
+  univention.ucs_modules.univention_app:
+    name: "{{ app_name }}"
+    state: present
+    auth_username: "Administrator"
+    auth_password: "{{ root_password }}"
+    config: "{{ app_vars }}"
   when: app_vars|dict2items|length > 0
 - name: "Configure apps | using config registry"
-  ansible.builtin.command:
-    cmd: "ucr set {{ ucr_vars.keys() | zip(ucr_vars.values()) | map('join','=') | join(' ') }}"
+  univention.ucs_modules.univention_config_registry:
+    keys: "{{ ucr_vars }}"
   when: ucr_vars|dict2items|length > 0
-# FIXME: yes I know there's a 'service' implementation..
 - name: "Configure apps | restart services"
-  ansible.builtin.command:
-    cmd: "systemctrl restart {{ srv }}"
+  ansible.builtin.service:
+    name: "{{ srv }}"
+    state: restarted
   loop: "{{ services }}"
   loop_control:
     loop_var: srv
