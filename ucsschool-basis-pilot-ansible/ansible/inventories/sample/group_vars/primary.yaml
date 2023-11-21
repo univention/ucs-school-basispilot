@@ -7,3 +7,9 @@ install_apps:
 school_parameters:
   OUdisplayname: 'Name der Schule'
   schoolOU: 'schulname'
+
+configure_apps:
+  'self-service-backend':
+    ucr_config:
+      'self-service/udm_attributes': 'jpegPhoto,e-mail,roomNumber,departmentNumber,country,homeTelephoneNumber,mobileTelephoneNumber,homePostalAddress'
+      'self-service/ldap_attributes': 'jpegPhoto,mail,roomNumber,departmentNumber,st,homePhone,mobile,homePostalAddress'

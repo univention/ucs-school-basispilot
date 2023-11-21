@@ -5,7 +5,7 @@ ansible_ssh_pass: "univention"
 upgrade_version: "5.0-5"
 update_server: "updates.software-univention.de"
 
-# Vars are overridden by default, so keep them in a 'global' dict here.
+# Vars are replaced by default, so keep them in a 'global' dict here.
 # Whenever a task needs global *and* per-host config, it can include both
 # vars files and *MUST* merge the needed variables.
 global:

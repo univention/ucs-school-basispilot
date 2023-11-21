@@ -6,11 +6,9 @@ install_apps:
   - "keycloak"
   - "prometheus"
   - "self-service"
-# FIXME: parameters for letsencrypt
-# FIXME: parameters for selfservice
-# FIXME: parameters for keycloak
 server_role: 'backup'
 
+# FIXME: parameters for keycloak
 configure_apps:
   # We refrain from setting apache2/{cert,chain,key} because with the unreliable behaviour
   # of acme_tiny.py (regards the 503 overload result) we risk having no webserver at all,
@@ -22,9 +20,13 @@ configure_apps:
     app_config:
       "letsencrypt/domains": "insert.the.domain.here"
       "letsencrypt/services/apache2":  "True"
-    #ucr_config:
-    #  "one_var": "one value"
-    #  "other_var": "other value"
-    #restart:
-    #  - 'oneservice'
-    #  - 'otherservice'
+  "self-service":
+    ucr_config:
+      "umc/self-service/enabled": "yes"
+      "umc/self-service/profiledata/enabled": "true"
+      "umc/self-service/passwordchange/frontend/enabled": "true"
+      "umc/self-service/passwordreset/frontend/enabled": "false"
+      "umc/self-service/passwordreset/backend/enabled": "false"
+      "umc/self-service/protect-account/frontend/enabled": "false"
+      "umc/self-service/protect-account/backend/enabled": "false"
+
