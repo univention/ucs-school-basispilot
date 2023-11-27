@@ -24,19 +24,19 @@ A *UCS Domain* consisting of one Primary, one Backup, one Replica.
 
 ### Install requirements
 
-ansible-galaxy install -r requirements.yml
+`ansible-galaxy install -r requirements.yml`
 
 ### Edit required parameters
 
-Edit the .yaml files in inventories/sample/inventory to set the required parameters.
+Edit the `.yaml` files in `inventories/sample/inventory` to set the required parameters.
 Note that all yaml files are commented.
 
-1. all.yaml
+1. `all.yaml`
 
 * set domain name and LDAP base DN
 * name additional apps to be installed on all roles
 
-2. primary.yaml
+2. `primary.yaml`
 
 * set desired school parameters (FIXME: comment all possible parameters)
 
@@ -53,9 +53,11 @@ on the Debian host. The playbook will import it into the UCS domain.
 
 ### Configure Server
 
+```
 ansible-playbook \
 --private-key ~/ansible-root/tech.pem \
 -u root \
 -i ~/ansible-root/inventory/basis-pilot.ini \
 -i ~/ansible-root/inventory/basis-pilot-kvm.ini \
 00424-basis-pilot/ucsschool-basis-pilot-ansible/ansible/playbook.yaml
+```
