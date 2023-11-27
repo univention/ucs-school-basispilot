@@ -1,0 +1,27 @@
+---
+
+- name: "get_installed_apps | Get app list"
+  ansible.builtin.command:
+    cmd: "univention-app info --as-json"
+  register: "get_installed_apps_cli_result"
+  changed_when: false
+  tags:
+    - "get_installed_apps_cli_json"
+    - "get_installed_apps"
+
+- name: "get_installed_apps | extract installed apps from json"
+  ansible.builtin.set_fact:
+    get_installed_apps_installed_apps_list: "{{ (get_installed_apps_cli_result.stdout | from_json)['installed'] | default([]) }}"
+  changed_when: false
+  tags:
+    - "get_installed_apps_parse_json"
+
+- name: "get_installed_apps | Convert app list into '<app>: <version>' dictionary"
+  ansible.builtin.set_fact:
+    get_installed_apps_installed_apps: "{{ lookup('template', 'convert_app_list.j2') | from_yaml | items2dict }}"
+  changed_when: false
+  tags:
+    - "get_installed_apps_convert_list_to_dict"
+    - "get_installed_apps"
+
+...
