@@ -4,6 +4,7 @@ force_package_upgrade: "false"
 # this is only for 'additional apps': @school is being handled already.
 install_apps:
   - "self-service-backend"
+
 school_parameters:
   OUdisplayname: 'Name der Schule'
   schoolOU: 'schulname'
@@ -13,3 +14,7 @@ configure_apps:
     ucr_config:
       'self-service/udm_attributes': 'jpegPhoto,e-mail,roomNumber,departmentNumber,country,homeTelephoneNumber,mobileTelephoneNumber,homePostalAddress'
       'self-service/ldap_attributes': 'jpegPhoto,mail,roomNumber,departmentNumber,st,homePhone,mobile,homePostalAddress'
+
+# You have to change this file name to the actual license file name (without path!).
+# The file is expected to be in /root/00424-basis-pilot/ucsschool-basis-pilot-ansible/files/
+license_file_name: "basis-pilot.de.license.ldif"

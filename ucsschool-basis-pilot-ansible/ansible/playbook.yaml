@@ -33,13 +33,15 @@
 # Prepare for appcenter able to install apps (works for the whole domain)
 # FIXME Rework license import so it can be done manually too
 - hosts: primary
+  vars_files:
+    - "inventories/sample/group_vars/primary.yaml"
   tasks:
     - name: "Install apps | Copy license"
       copy:
         dest: "/tmp/"
-        src: "../files/basis-pilot.de.license.ldif"
+        src: "../files/{{ license_file_name }}"
     - name: "Install apps | Import license"
-      command: "univention-license-import /tmp/basis-pilot.de.license.ldif"
+      command: "univention-license-import /tmp/{{ license_file_name }}"
 
 # With the requirement 'join other roles after @school is fully configured on master' we have to do this
 # before anything else. For better distinction what we're doing right now, we make two plays: one for
