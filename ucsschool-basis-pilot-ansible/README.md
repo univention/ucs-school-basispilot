@@ -17,7 +17,7 @@ cp univention_app.py /root/.ansible/collections/ansible_collections/univention/u
 cd
 ```
 When these bugs have been resolved (and rolled out to the Ansible Galaxy) this part can be omitted, and the `patches` subdirectory
-if this repository can be removed. Note that the Jenkins job does these copies too, so it has to be corrected too.
+of this repository can be removed. Note that the Jenkins job does these copies too, so it has to be corrected too.
 
 ## Prerequisites
 
@@ -74,7 +74,7 @@ into root's home, creating the `00424-basis-pilot` directory. Perhaps the easies
 
 ### Install requirements
 
-`ansible-galaxy install -r requirements.yml`
+`ansible-galaxy install -r ansible-galaxy install -r 00424-basis-pilot/ucsschool-basis-pilot-ansible/ansible/requirements.yml`
 
 ### Edit required parameters
 
@@ -104,6 +104,46 @@ License file has to be obtained from Univention sales on behalf of the customer,
 on the Debian host. The playbook will import it into the UCS domain. Note that the name of the
 license file (without path) has to be written into `primary.yaml` (Caution: Please do not use
 spaces or other unusual characters in the file name, and exactly honor upper/lowercase filename.)
+
+### Prepare inventory and configuration
+
+These two steps are also carried out by Jenkins when this is embedded into a Jenkins job. For a
+customer environment, the steps have to be done manually. (Maybe this can be delegated to the
+customer? Better yet: even if the customer shall prepare this: you should always verify that
+everything is in place.
+
+* *Prepare inventory file*: create a file `/root/ansible-root/inventory/basis-pilot-kvm.ini` with
+  the contents:
+  ```
+  [primary]
+  the.ip.of.primary
+
+  [backups]
+  the.ip.of.backup
+
+  [replicas]
+  the.ip.of.replica
+  ```
+* *Prepare Ansible configuration*: create a file `/root/ansible-root/inventory/basis-pilot.ini` with
+  the contents:
+  ```
+  domainname='the.dns.domainname.of.ucs.domain'
+  windows_domain='NETDOMAIN'
+  ldap_base='dc='the',dc=dns,dc=domainname,dc=of,dc=ucs,dc=domain'
+  root_password='Administrator-pw'
+  interface_name='eth0'
+  interface_mode='dhcp'
+  primary_hostname='how they named their primary'
+  primary_ip='the.ip.of.primary'
+  ```
+  and a configuration file `/root/.ansible.cfg` with the contents:
+  ```
+  [defaults]
+  host_key_checking = False
+  ```
+  (NOTE TO QA: maybe these variables double the function of the `all.yaml` and the other
+  `.yaml` files in this directory. I did not check which of these variables are really
+  in use, or can be omitted here.)
 
 ### Configure Server
 
