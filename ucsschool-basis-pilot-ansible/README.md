@@ -141,6 +141,9 @@ everything is in place.
   [defaults]
   host_key_checking = False
   ```
+  Note that the values above (DNS domain, and LDAP base) have to correspond to the license
+  that has to be issued for the customer.
+
   (NOTE TO QA: maybe these variables double the function of the `all.yaml` and the other
   `.yaml` files in this directory. I did not check which of these variables are really
   in use, or can be omitted here.)
@@ -159,3 +162,7 @@ ansible-playbook \
 -i ~/ansible-root/inventory/basis-pilot-kvm.ini \
 00424-basis-pilot/ucsschool-basis-pilot-ansible/ansible/playbook.yaml
 ```
+NOTE: for the Jenkins-enrolled domain, the above command is correct. At the customers' site,
+you should the `--private-key ~/ansible-root/tech.pem` line because this key is internal. how to
+achieve reachability by `ssh` using public keys without using the `tech.pem` key is described
+above in this document.
